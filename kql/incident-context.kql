@@ -1,0 +1,14 @@
+// Collects the log events around an incident's IP and account entities,
+// trimmed to the columns the LLM needs. The Logic App replaces the two
+// placeholders with values read from the incident's entities.
+let incidentIp = "{{IpAddress}}";
+let incidentAccount = "{{AccountName}}";
+let window = 24h;
+SecurityEvent
+| where TimeGenerated > ago(window)
+| where IpAddress == incidentIp or TargetUserName =~ incidentAccount
+| where EventID in (4624, 4625, 4648, 4672, 4720, 4740)
+| summarize Events = count(), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated)
+    by EventID, Activity, IpAddress, TargetUserName, LogonType, Computer
+| order by Events desc
+| take 50
